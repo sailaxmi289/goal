@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Level Design Lab - Simple Level 1</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #121212;
+            color: #fff;
+        }
+
+        canvas {
+            display: block;
+            margin: 20px auto;
+            background: #000;
+            border: 2px solid #00ffd5;
+        }
+
+        #ui {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .btn {
+            background: #00ffd5;
+            color: #121212;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 5px;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            background: #00bfa5;
+        }
+
+        #winText {
+            font-size: 20px;
+            margin-top: 10px;
+            color: #00ff88;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="ui">
+        <h1>🧩 Level Design Lab</h1>
+        <p>Use arrow keys to move, space to jump. Reach the gold block to win!</p>
+        <button class="btn" onclick="startGame()">Start Game</button>
+        <div id="winText"></div>
+    </div>
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const levels = [
+            [{
+                    x: 0,
+                    y: 480,
+                    w: 800,
+                    h: 20,
+                    color: '#0f0'
+                },
+                {
+                    x: 80,
+                    y: 420,
+                    w: 80,
+                    h: 20,
+                    color: '#0ff'
+                },
+                {
+                    x: 180,
+                    y: 380,
+                    w: 80,
+                    h: 20,
+                    color: '#0ff'
+                },
+                {
+                    x: 280,
+                    y: 340,
+                    w: 80,
+                    h: 20,
+                    color: '#0ff'
+                },
+                {
+                    x: 380,
+                    y: 300,
+                    w: 80,
+                    h: 20,
+                    color: '#0ff'
+                },
+                {
+                    x: 480,
+                    y: 260,
+                    w: 80,
+                    h: 20,
+                    color: '#0ff'
+                },
+                {
+                    x: 600,
+                    y: 220,
+                    w: 40,
+                    h: 20,
+                    color: 'gold',
+                    isGoal: true
+                }
+            ],
+            [{
+                    x: 0,
+                    y: 480,
+                    w: 800,
+                    h: 20,
+                    color: '#ccc'
+                },
+                {
+                    x: 200,
+                    y: 420,
+                    w: 100,
+                    h: 20,
+                    color: '#ff4444'
+                },
+                {
+                    x: 400,
+                    y: 380,
+                    w: 100,
+                    h: 20,
+                    color: '#ff4444'
+                },
+                {
+                    x: 600,
+                    y: 340,
+                    w: 20,
+                    h: 20,
+                    color: 'gold',
+                    isGoal: true
+                }
+            ]
+        ];
+
+        const player = {
+            x: 50,
+            y: 50,
+            w: 20,
+            h: 20,
+            color: '#ffd700',
+            vx: 0,
+            vy: 0,
+            speed: 3,
+            gravity: 0.5,
+            onGround: false
+        };
+
+        let keys = {};
+        let currentLevel = 0;
+        let gameStarted = false;
+
+        function drawLevel(levelIndex) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const level = levels[levelIndex];
+            level.forEach(obj => {
+                ctx.fillStyle = obj.color;
+                ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+            });
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.w, player.h);
+        }
+
+        function loadLevel(index) {
+            currentLevel = index;
+            player.x = 50;
+            player.y = 50;
+            player.vx = 0;
+            player.vy = 0;
+            drawLevel(currentLevel);
+        }
+
+        function checkCollision(a, b) {
+            return (
+                a.x < b.x + b.w &&
+                a.x + a.w > b.x &&
+                a.y < b.y + b.h &&
+                a.y + a.h > b.y
+            );
+        }
+
+        function update() {
+            if (!gameStarted) return;
+
+            player.vy += player.gravity;
+            player.x += player.vx;
+            player.y += player.vy;
+            player.onGround = false;
+
+            const level = levels[currentLevel];
+            for (let platform of level) {
+                if (checkCollision(player, platform)) {
+                    if (platform.isGoal) {
+                        document.getElementById("winText").innerText = `🎉 Level ${currentLevel + 1} Complete! Level ${currentLevel + 2} will begin...`;
+                        setTimeout(() => {
+                            if (currentLevel + 1 < levels.length) {
+                                loadLevel(currentLevel + 1);
+                                document.getElementById("winText").innerText = '';
+                            } else {
+                                document.getElementById("winText").innerText = '🏆 level 2!';
+                                gameStarted = false;
+                            }
+                        }, 2000);
+                        return;
+                    }
+
+                    if (player.vy > 0 && player.y + player.h - player.vy <= platform.y) {
+                        player.y = platform.y - player.h;
+                        player.vy = 0;
+                        player.onGround = true;
+                    } else if (player.vy < 0 && player.y >= platform.y + platform.h) {
+                        player.y = platform.y + platform.h;
+                        player.vy = 0;
+                    }
+                }
+            }
+
+            if (keys['ArrowLeft']) player.vx = -player.speed;
+            else if (keys['ArrowRight']) player.vx = player.speed;
+            else player.vx = 0;
+
+            if (keys[' '] && player.onGround) {
+                player.vy = -10;
+            }
+
+            if (player.y > canvas.height) {
+                player.x = 50;
+                player.y = 50;
+                player.vx = 0;
+                player.vy = 0;
+            }
+        }
+
+        function gameLoop() {
+            update();
+            drawLevel(currentLevel);
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            gameStarted = true;
+            loadLevel(0);
+        }
+
+        window.addEventListener('keydown', (e) => keys[e.key] = true);
+        window.addEventListener('keyup', (e) => keys[e.key] = false);
+
+        gameLoop();
+    </script>
+</body>
+
+</html>
